@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StoryPage } from '../types';
-import { EditIcon, ChevronLeftIcon, ChevronRightIcon, RefreshIcon, DownloadIcon, SparklesIcon } from './icons';
+import { EditIcon, ChevronLeftIcon, ChevronRightIcon, RefreshIcon, DownloadIcon, SparklesIcon, CloudArrowUpIcon } from './icons';
 import { getTranslator } from '../i18n';
 
 type Translator = ReturnType<typeof getTranslator>;
@@ -11,6 +11,8 @@ interface StoryViewerProps {
   onReset: () => void;
   onDownload: () => void;
   onRegenerateWithNewStyle: (newStyle: string) => void;
+  onSaveToCloud: () => void;
+  isSaving: boolean;
   t: Translator;
 }
 
@@ -24,7 +26,7 @@ const imageStyleOptions = [
 ];
 
 
-const StoryViewer: React.FC<StoryViewerProps> = ({ pages, onStartEdit, onReset, onDownload, onRegenerateWithNewStyle, t }) => {
+const StoryViewer: React.FC<StoryViewerProps> = ({ pages, onStartEdit, onReset, onDownload, onRegenerateWithNewStyle, onSaveToCloud, isSaving, t }) => {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showStyleModal, setShowStyleModal] = useState(false);
 
@@ -120,6 +122,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ pages, onStartEdit, onReset, 
         >
           <SparklesIcon className="w-5 h-5"/>
           {t('changeStyle')}
+        </button>
+         <button
+          onClick={onSaveToCloud}
+          disabled={isSaving}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--bg-tertiary)] text-[var(--text-primary)] font-semibold rounded-full hover:bg-[var(--border-color)] transition-colors disabled:opacity-50 disabled:cursor-wait"
+        >
+          <CloudArrowUpIcon className="w-5 h-5"/>
+          {isSaving ? t('savingToCloud') : t('saveToCloud')}
         </button>
         <button
           onClick={onDownload}

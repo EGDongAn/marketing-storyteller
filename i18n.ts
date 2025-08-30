@@ -75,6 +75,8 @@ export const translations = {
     startNewStory: 'Start New Story',
     changeStyle: 'Change Style',
     downloadStory: 'Download Story',
+    saveToCloud: 'Save to Cloud',
+    savingToCloud: 'Saving...',
 
     // Download Modal
     downloadModalTitle: 'Download Your Story',
@@ -105,6 +107,10 @@ export const translations = {
     bubbleDelete: 'Delete',
     loadingWand: 'Analyzing subject...',
     loadingEdit: 'Applying edit...',
+
+    // Save to Cloud Notifications
+    saveSuccess: 'Story saved successfully!',
+    saveError: 'Failed to save story.',
   },
   ko: {
     // App Header
@@ -177,6 +183,8 @@ export const translations = {
     startNewStory: '새 스토리 시작',
     changeStyle: '스타일 변경',
     downloadStory: '스토리 다운로드',
+    saveToCloud: '클라우드에 저장',
+    savingToCloud: '저장 중...',
 
     // Download Modal
     downloadModalTitle: '스토리 다운로드',
@@ -207,6 +215,10 @@ export const translations = {
     bubbleDelete: '삭제',
     loadingWand: '피사체 분석 중...',
     loadingEdit: '편집 적용 중...',
+    
+    // Save to Cloud Notifications
+    saveSuccess: '스토리가 성공적으로 저장되었습니다!',
+    saveError: '스토리 저장에 실패했습니다.',
   },
 };
 

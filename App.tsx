@@ -1,12 +1,14 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { StoryPage, StoryPageData } from './types';
 import { generateStoryPages, generateImageForPage } from './services/geminiService';
-import { getTranslator, Language, Theme, translations, themes } from './i18n';
+import { getTranslator, Language, Theme, themes } from './i18n';
 import StoryInputForm from './components/StoryInputForm';
 import StoryViewer from './components/StoryViewer';
 import ImageEditorModal from './components/ImageEditorModal';
 import LoadingIndicator from './components/LoadingIndicator';
-import { LogoIcon, DownloadIcon, CogIcon } from './components/icons';
+import { LogoIcon, DownloadIcon, CogIcon, XMarkIcon, CheckIcon as CheckCircleIcon } from './components/icons';
+
+type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
 const App: React.FC = () => {
   const [storyConfig, setStoryConfig] = useState<{prompt: string | object, pageCount: number} | null>(null);
@@ -20,6 +22,7 @@ const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('en');
   const [theme, setTheme] = useState<Theme>('dark');
   const [showSettings, setShowSettings] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
   
   const t = getTranslator(language);
 
@@ -48,18 +51,18 @@ const App: React.FC = () => {
       setLoadingMessage(t('loadingScenes'));
       
       const pagesWithImages: StoryPage[] = [];
-      for (let i = 0; i < pagesData.length; i++) {
-        const page = pagesData[i];
-        setLoadingMessage(t('loadingSceneProgress', i + 1, pagesData.length));
+      // Use a sequential loop to avoid hitting rate limits
+      for (const [index, page] of pagesData.entries()) {
+        setLoadingMessage(t('loadingSceneProgress', index + 1, pagesData.length));
         const { imageUrl, mimeType } = await generateImageForPage(page.imagePrompt);
-        pagesWithImages.push({ ...page, id: `page-${i}`, imageUrl, mimeType });
+        pagesWithImages.push({ ...page, id: `page-${index}`, imageUrl, mimeType });
       }
 
       setStoryPages(pagesWithImages);
     } catch (err) {
       console.error(err);
       const message = err instanceof Error ? err.message : t('errorUnknown');
-      if (message.includes('limit reached')) {
+       if (message.includes('limit reached')) {
         setError(t('errorRateLimit'));
       } else {
         setError(message);
@@ -137,7 +140,108 @@ const App: React.FC = () => {
     setIsLoading(false);
   };
   
-  const DownloadModal = () => { /* ... */ };
+  const handleSaveToCloud = async () => {
+    if (storyPages.length === 0) return;
+    setSaveState('saving');
+    try {
+      const response = await fetch('/api/save-story', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pages: storyPages, title: storyPages[0].text.substring(0, 50) + '...' }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || t('saveError'));
+      }
+      setSaveState('success');
+    } catch (err) {
+      console.error(err);
+      setSaveState('error');
+    }
+  };
+
+  const Toast = () => {
+    useEffect(() => {
+      if (saveState === 'success' || saveState === 'error') {
+        const timer = setTimeout(() => setSaveState('idle'), 3000);
+        return () => clearTimeout(timer);
+      }
+    }, [saveState]);
+
+    if (saveState === 'idle') return null;
+
+    const isSuccess = saveState === 'success';
+    const message = isSuccess ? t('saveSuccess') : t('saveError');
+
+    return (
+      <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl animate-fade-in-up ${isSuccess ? 'bg-green-600' : 'bg-red-600'} text-white`}>
+        {isSuccess ? <CheckCircleIcon className="w-6 h-6" /> : <XMarkIcon className="w-6 h-6" />}
+        <span className="font-semibold">{message}</span>
+      </div>
+    );
+  };
+  
+  const DownloadModal = () => {
+    const handleDownloadText = () => {
+        const fullText = storyPages.map((page, index) => `Page ${index + 1}\n\n${page.text}`).join('\n\n---\n\n');
+        const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'marketing_story.txt';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleDownloadImage = (imageUrl: string, index: number) => {
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = `story_page_${index + 1}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div className="bg-[var(--bg-secondary)] w-full max-w-2xl rounded-2xl border border-[var(--border-color)] shadow-2xl p-6 relative flex flex-col">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold font-serif">{t('downloadModalTitle')}</h2>
+                    <button onClick={() => setShowDownloadModal(false)} className="p-1 rounded-full hover:bg-[var(--bg-tertiary)]"><XMarkIcon className="w-6 h-6"/></button>
+                </div>
+                <p className="text-[var(--text-secondary)] mb-6">{t('downloadModalDescription')}</p>
+                
+                <div className="mb-6">
+                    <button onClick={handleDownloadText} className="w-full px-5 py-2.5 bg-[var(--accent)] text-white font-semibold rounded-full hover:bg-[var(--accent-hover)] transition-colors inline-flex items-center justify-center gap-2">
+                        <DownloadIcon className="w-5 h-5"/>
+                        {t('downloadFullStory')}
+                    </button>
+                </div>
+
+                <div className="overflow-y-auto max-h-[50vh] pr-2 -mr-2 space-y-4">
+                    {storyPages.map((page, index) => (
+                        <div key={page.id} className="flex items-center justify-between bg-[var(--bg-primary)] p-3 rounded-lg">
+                            <div className="flex items-center gap-4">
+                                <img src={page.imageUrl} alt={`Page ${index + 1}`} className="w-16 h-16 object-cover rounded-md" />
+                                <div>
+                                    <p className="font-semibold">{t('pageIndicator', index + 1, storyPages.length)}</p>
+                                    <p className="text-sm text-[var(--text-secondary)] truncate max-w-xs">{page.text}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => handleDownloadImage(page.imageUrl, index)} className="px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-sm font-semibold rounded-full hover:bg-[var(--border-color)]">
+                                {t('download')}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+                
+                 <button onClick={() => setShowDownloadModal(false)} className="mt-6 w-full px-5 py-2.5 bg-[var(--bg-tertiary)] text-[var(--text-primary)] font-semibold rounded-full hover:bg-[var(--border-color)]">
+                    {t('close')}
+                </button>
+            </div>
+        </div>
+    );
+  };
 
   const SettingsDropdown = () => (
     <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
@@ -206,6 +310,8 @@ const App: React.FC = () => {
             onReset={handleReset}
             onDownload={() => setShowDownloadModal(true)}
             onRegenerateWithNewStyle={handleRegenerateWithNewStyle}
+            onSaveToCloud={handleSaveToCloud}
+            isSaving={saveState === 'saving'}
             t={t}
           />
         )}
@@ -218,6 +324,8 @@ const App: React.FC = () => {
             t={t}
           />
         )}
+        {showDownloadModal && <DownloadModal />}
+        <Toast />
       </main>
     </div>
   );
