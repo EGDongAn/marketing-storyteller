@@ -77,6 +77,9 @@ export const translations = {
     downloadStory: 'Download Story',
     saveToCloud: 'Save to Cloud',
     savingToCloud: 'Saving...',
+    imageLoading: 'Generating image...',
+    imageErrorTitle: 'Image Failed',
+    imageErrorBody: 'Could not generate this image. You can still edit or download other images.',
 
     // Download Modal
     downloadModalTitle: 'Download Your Story',
@@ -111,6 +114,7 @@ export const translations = {
     // Save to Cloud Notifications
     saveSuccess: 'Story saved successfully!',
     saveError: 'Failed to save story.',
+    saveErrorNotReady: 'Please wait for all images to finish generating.',
   },
   ko: {
     // App Header
@@ -185,6 +189,9 @@ export const translations = {
     downloadStory: '스토리 다운로드',
     saveToCloud: '클라우드에 저장',
     savingToCloud: '저장 중...',
+    imageLoading: '이미지 생성 중...',
+    imageErrorTitle: '이미지 실패',
+    imageErrorBody: '이 이미지를 생성할 수 없습니다. 다른 이미지는 편집하거나 다운로드할 수 있습니다.',
 
     // Download Modal
     downloadModalTitle: '스토리 다운로드',
@@ -219,6 +226,7 @@ export const translations = {
     // Save to Cloud Notifications
     saveSuccess: '스토리가 성공적으로 저장되었습니다!',
     saveError: '스토리 저장에 실패했습니다.',
+    saveErrorNotReady: '모든 이미지 생성이 완료될 때까지 기다려주세요.',
   },
 };
 

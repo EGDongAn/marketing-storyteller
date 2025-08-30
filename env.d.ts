@@ -6,5 +6,6 @@ declare namespace NodeJS {
     readonly SUPABASE_ANON_KEY: string;
     readonly NOTION_API_KEY: string;
     readonly NOTION_DATABASE_ID: string;
+    readonly SUPABASE_BUCKET_ID: string;
   }
 }

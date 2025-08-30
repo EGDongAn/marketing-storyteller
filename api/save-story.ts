@@ -32,16 +32,23 @@ export default async function handler(request: Request) {
 
     try {
         const { pages, title } = (await request.json()) as { pages: StoryPage[], title: string };
-        const { SUPABASE_URL, SUPABASE_ANON_KEY, NOTION_API_KEY, NOTION_DATABASE_ID } = process.env;
+        const { SUPABASE_URL, SUPABASE_ANON_KEY, NOTION_API_KEY, NOTION_DATABASE_ID, SUPABASE_BUCKET_ID } = process.env;
+        
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !NOTION_API_KEY || !NOTION_DATABASE_ID || !SUPABASE_BUCKET_ID) {
+            return new Response(JSON.stringify({ error: 'Server configuration missing for save functionality.' }), { status: 500 });
+        }
 
         // --- 1. Upload images to Supabase Storage ---
         const uploadedImageUrls: string[] = [];
         for (const page of pages) {
+            if (!page.imageUrl) continue; // Skip pages that failed to generate an image
+
             const blob = dataURLtoBlob(page.imageUrl);
             const fileName = `story-image-${Date.now()}-${Math.random().toString(36).substring(2)}.png`;
-            const filePath = `public/${fileName}`;
             
-            const uploadResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/${filePath}`, {
+            const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET_ID}/${fileName}`;
+
+            const uploadResponse = await fetch(uploadUrl, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -57,10 +64,8 @@ export default async function handler(request: Request) {
                 throw new Error(`Failed to upload image ${pages.indexOf(page) + 1}.`);
             }
             
-            const publicUrlResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/public/${filePath}`);
-            const { publicUrl } = await publicUrlResponse.json();
-
-
+            // Construct the public URL directly
+            const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET_ID}/${fileName}`;
             uploadedImageUrls.push(publicUrl);
         }
 
@@ -68,6 +73,8 @@ export default async function handler(request: Request) {
         const notionApiUrl = 'https://api.notion.com/v1/pages';
         const notionBlocks = pages.flatMap((page, index) => {
             const imageUrl = uploadedImageUrls[index];
+            if (!imageUrl) return []; // Don't create blocks for missing images
+
             return [
                 {
                     object: 'block',

@@ -2,8 +2,9 @@ export interface StoryPage {
   id: string;
   text: string;
   imagePrompt: string;
-  imageUrl: string; // base64 data URL
-  mimeType: string;
+  imageUrl?: string; // Can be undefined while generating
+  mimeType?: string; // Can be undefined while generating
+  imageStatus: 'pending' | 'success' | 'error';
 }
 
 // Type for the initial story structure returned by Gemini

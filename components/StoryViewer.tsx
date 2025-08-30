@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { StoryPage } from '../types';
-import { EditIcon, ChevronLeftIcon, ChevronRightIcon, RefreshIcon, DownloadIcon, SparklesIcon, CloudArrowUpIcon } from './icons';
+import { EditIcon, ChevronLeftIcon, ChevronRightIcon, RefreshIcon, DownloadIcon, SparklesIcon, CloudArrowUpIcon, ExclamationTriangleIcon } from './icons';
 import { getTranslator } from '../i18n';
+import LoadingIndicator from './LoadingIndicator';
 
 type Translator = ReturnType<typeof getTranslator>;
 
@@ -29,6 +30,8 @@ const imageStyleOptions = [
 const StoryViewer: React.FC<StoryViewerProps> = ({ pages, onStartEdit, onReset, onDownload, onRegenerateWithNewStyle, onSaveToCloud, isSaving, t }) => {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showStyleModal, setShowStyleModal] = useState(false);
+  
+  const allImagesLoaded = pages.every(p => p.imageStatus === 'success');
 
   const goToPrevious = () => {
     setCurrentPageIndex(prev => (prev === 0 ? pages.length - 1 : prev - 1));
@@ -71,17 +74,29 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ pages, onStartEdit, onReset, 
   return (
     <div className="w-full flex flex-col items-center gap-6">
       <div className="w-full max-w-2xl bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-color)] shadow-2xl p-4 sm:p-6 overflow-hidden">
-        <div className="relative aspect-square w-full rounded-lg overflow-hidden group">
-          <img src={currentPage.imageUrl} alt={currentPage.imagePrompt} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-             <button
-              onClick={() => onStartEdit(currentPage)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-800 font-semibold rounded-full shadow-lg hover:bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black/50 focus:ring-white transition-all transform hover:scale-110"
-            >
-              <EditIcon className="w-5 h-5" />
-              <span>{t('editImage')}</span>
-            </button>
-          </div>
+        <div className="relative aspect-square w-full rounded-lg overflow-hidden group bg-[var(--bg-primary)] flex items-center justify-center">
+            {currentPage.imageStatus === 'pending' && <LoadingIndicator message={t('imageLoading')} size="md" />}
+            {currentPage.imageStatus === 'error' && (
+                <div className="text-center text-red-400 p-4">
+                    <ExclamationTriangleIcon className="w-12 h-12 mx-auto mb-2" />
+                    <p className="font-semibold">{t('imageErrorTitle')}</p>
+                    <p className="text-sm">{t('imageErrorBody')}</p>
+                </div>
+            )}
+            {currentPage.imageStatus === 'success' && currentPage.imageUrl && (
+                 <>
+                    <img src={currentPage.imageUrl} alt={currentPage.imagePrompt} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <button
+                        onClick={() => onStartEdit(currentPage)}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-800 font-semibold rounded-full shadow-lg hover:bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black/50 focus:ring-white transition-all transform hover:scale-110"
+                        >
+                        <EditIcon className="w-5 h-5" />
+                        <span>{t('editImage')}</span>
+                        </button>
+                    </div>
+                </>
+            )}
         </div>
         <p className="mt-6 text-[var(--text-secondary)] text-lg leading-relaxed text-center">
           {currentPage.text}
@@ -125,7 +140,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ pages, onStartEdit, onReset, 
         </button>
          <button
           onClick={onSaveToCloud}
-          disabled={isSaving}
+          disabled={isSaving || !allImagesLoaded}
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--bg-tertiary)] text-[var(--text-primary)] font-semibold rounded-full hover:bg-[var(--border-color)] transition-colors disabled:opacity-50 disabled:cursor-wait"
         >
           <CloudArrowUpIcon className="w-5 h-5"/>
@@ -133,7 +148,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ pages, onStartEdit, onReset, 
         </button>
         <button
           onClick={onDownload}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--accent)] text-white font-semibold rounded-full hover:bg-[var(--accent-hover)] transition-colors"
+          disabled={!allImagesLoaded}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--accent)] text-white font-semibold rounded-full hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <DownloadIcon className="w-5 h-5"/>
           {t('downloadStory')}

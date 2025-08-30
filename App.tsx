@@ -33,6 +33,22 @@ const App: React.FC = () => {
     root.classList.add(theme);
   }, [theme, language]);
 
+  const generateImagesSequentially = async (pagesData: StoryPageData[]) => {
+    for (const [index, pageData] of pagesData.entries()) {
+      try {
+        const { imageUrl, mimeType } = await generateImageForPage(pageData.imagePrompt);
+        setStoryPages(prev => prev.map(p => 
+          p.id === `page-${index}` ? { ...p, imageUrl, mimeType, imageStatus: 'success' } : p
+        ));
+      } catch (err) {
+        console.error(`Failed to generate image for page ${index}:`, err);
+        setStoryPages(prev => prev.map(p => 
+          p.id === `page-${index}` ? { ...p, imageStatus: 'error' } : p
+        ));
+      }
+    }
+  };
+
   const handleGenerateStory = useCallback(async (finalPrompt: string | object, pageCount: number) => {
     if (typeof finalPrompt === 'string' && !finalPrompt.trim()) {
       setError(t('errorPromptEmpty'));
@@ -48,17 +64,19 @@ const App: React.FC = () => {
       setLoadingMessage(t('loadingStructure'));
       const pagesData: StoryPageData[] = await generateStoryPages(finalPrompt);
 
-      setLoadingMessage(t('loadingScenes'));
-      
-      const pagesWithImages: StoryPage[] = [];
-      // Use a sequential loop to avoid hitting rate limits
-      for (const [index, page] of pagesData.entries()) {
-        setLoadingMessage(t('loadingSceneProgress', index + 1, pagesData.length));
-        const { imageUrl, mimeType } = await generateImageForPage(page.imagePrompt);
-        pagesWithImages.push({ ...page, id: `page-${index}`, imageUrl, mimeType });
-      }
+      const initialPages: StoryPage[] = pagesData.map((page, index) => ({
+        ...page,
+        id: `page-${index}`,
+        imageStatus: 'pending',
+      }));
 
-      setStoryPages(pagesWithImages);
+      setStoryPages(initialPages);
+      setIsLoading(false); // Stop main loading indicator
+      setLoadingMessage('');
+
+      // Sequentially generate images in the background
+      generateImagesSequentially(pagesData);
+
     } catch (err) {
       console.error(err);
       const message = err instanceof Error ? err.message : t('errorUnknown');
@@ -67,7 +85,6 @@ const App: React.FC = () => {
       } else {
         setError(message);
       }
-    } finally {
       setIsLoading(false);
       setLoadingMessage('');
     }
@@ -126,7 +143,7 @@ const App: React.FC = () => {
     
     setStoryPages(prevPages =>
       prevPages.map(p =>
-        p.id === editingPage.id ? { ...p, imageUrl: finalImageUrl } : p
+        p.id === editingPage.id ? { ...p, imageUrl: finalImageUrl, imageStatus: 'success' } : p
       )
     );
     setEditingPage(null);
@@ -141,13 +158,18 @@ const App: React.FC = () => {
   };
   
   const handleSaveToCloud = async () => {
-    if (storyPages.length === 0) return;
+    if (storyPages.length === 0 || storyPages.some(p => p.imageStatus !== 'success')) {
+        setSaveState('error'); // Use toast to show not ready error.
+        return;
+    };
     setSaveState('saving');
     try {
+      // Filter out pages without image URLs just in case
+      const pagesToSave = storyPages.filter(p => p.imageUrl);
       const response = await fetch('/api/save-story', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pages: storyPages, title: storyPages[0].text.substring(0, 50) + '...' }),
+        body: JSON.stringify({ pages: pagesToSave, title: pagesToSave[0].text.substring(0, 50) + '...' }),
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -171,7 +193,11 @@ const App: React.FC = () => {
     if (saveState === 'idle') return null;
 
     const isSuccess = saveState === 'success';
-    const message = isSuccess ? t('saveSuccess') : t('saveError');
+    let message = isSuccess ? t('saveSuccess') : t('saveError');
+    if (saveState === 'error' && storyPages.some(p => p.imageStatus !== 'success')) {
+        message = t('saveErrorNotReady');
+    }
+
 
     return (
       <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl animate-fade-in-up ${isSuccess ? 'bg-green-600' : 'bg-red-600'} text-white`}>
@@ -222,13 +248,17 @@ const App: React.FC = () => {
                     {storyPages.map((page, index) => (
                         <div key={page.id} className="flex items-center justify-between bg-[var(--bg-primary)] p-3 rounded-lg">
                             <div className="flex items-center gap-4">
-                                <img src={page.imageUrl} alt={`Page ${index + 1}`} className="w-16 h-16 object-cover rounded-md" />
+                               {page.imageUrl ? (
+                                    <img src={page.imageUrl} alt={`Page ${index + 1}`} className="w-16 h-16 object-cover rounded-md" />
+                                ) : (
+                                    <div className="w-16 h-16 bg-[var(--bg-tertiary)] rounded-md flex items-center justify-center">...</div>
+                                )}
                                 <div>
                                     <p className="font-semibold">{t('pageIndicator', index + 1, storyPages.length)}</p>
                                     <p className="text-sm text-[var(--text-secondary)] truncate max-w-xs">{page.text}</p>
                                 </div>
                             </div>
-                            <button onClick={() => handleDownloadImage(page.imageUrl, index)} className="px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-sm font-semibold rounded-full hover:bg-[var(--border-color)]">
+                            <button onClick={() => page.imageUrl && handleDownloadImage(page.imageUrl, index)} disabled={!page.imageUrl} className="px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-sm font-semibold rounded-full hover:bg-[var(--border-color)] disabled:opacity-50 disabled:cursor-not-allowed">
                                 {t('download')}
                             </button>
                         </div>
