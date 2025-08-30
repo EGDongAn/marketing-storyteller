@@ -1,0 +1,5 @@
+{
+  "name": "Marketing Storyteller",
+  "description": "An interactive application that uses Google Gemini to generate viral marketing storyboards and ad scripts from a simple prompt. Users can create unique stories, see them come to life with AI-generated images, and even edit the illustrations with further prompts.",
+  "requestFramePermissions": []
+}

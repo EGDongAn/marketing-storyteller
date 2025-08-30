@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Marketing Storyteller</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        /* Default (Light Theme) */
+        --bg-primary: #f8fafc; /* slate-50 */
+        --bg-secondary: #f1f5f9; /* slate-100 */
+        --bg-tertiary: #e2e8f0; /* slate-200 */
+        --text-primary: #1e293b; /* slate-800 */
+        --text-secondary: #475569; /* slate-600 */
+        --border-color: #cbd5e1; /* slate-300 */
+        --accent: #7c3aed; /* purple-600 */
+        --accent-hover: #6d28d9; /* purple-700 */
+      }
+      .dark body {
+        --bg-primary: #0f172a; /* slate-900 */
+        --bg-secondary: #1e293b; /* slate-800 */
+        --bg-tertiary: #334155; /* slate-700 */
+        --text-primary: #e2e8f0; /* slate-200 */
+        --text-secondary: #94a3b8; /* slate-400 */
+        --border-color: #475569; /* slate-600 */
+        --accent: #8b5cf6; /* purple-500 */
+        --accent-hover: #7c3aed; /* purple-600 */
+      }
+      .synthwave body {
+        --bg-primary: #2a2145;
+        --bg-secondary: #211939;
+        --bg-tertiary: #3b2d61;
+        --text-primary: #f0f0f0;
+        --text-secondary: #a9a4d4;
+        --border-color: #514285;
+        --accent: #f6019d;
+        --accent-hover: #ff33b8;
+      }
+      body {
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        transition: background-color 0.3s, color 0.3s;
+      }
+      h1, h2, h3, .font-serif {
+        font-family: 'Playfair Display', serif;
+      }
+      /* Custom scrollbar for better theme integration */
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+      ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--border-color); }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.16.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
